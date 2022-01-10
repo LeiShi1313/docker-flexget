@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED 1
 RUN \
     echo "**** install build packages ****" && \
     apt-get update && \
-    apt-get install -y gcc
+    apt-get install -y gcc git
 
 WORKDIR /wheels
 RUN pip install -U pip && \
@@ -19,7 +19,9 @@ RUN pip install -U pip && \
     pip wheel fuzzywuzzy && \
     pip wheel python-Levenshtein && \
     pip wheel pyppeteer && \
-    pip wheel pyppeteer_stealth
+    pip wheel pyppeteer_stealth && \
+    pip wheel deluge-client && \
+    pip wheel autoremove-torrents
 
 
 FROM python
@@ -47,7 +49,8 @@ RUN \
                     libasound2 \
                     libatk1.0-0 \
                     libatk-bridge2.0-0 \
-                    libgtk-3-0 && \
+                    libgtk-3-0
+RUN \
     pip install -U pip && \
     pip install --no-cache-dir \
                 --no-index \
@@ -63,7 +66,10 @@ RUN \
                 fuzzywuzzy \
                 python-Levenshtein \
                 pyppeteer \
-                pyppeteer_stealth && \
+                pyppeteer_stealth \
+                deluge-client \
+                autoremove-torrents
+RUN \
     echo "**** create flexget user and make our folders ****" && \
     mkdir /home/flexget && \
     groupmod -g 1000 users && \
@@ -78,6 +84,15 @@ RUN \
 # add default volumes
 VOLUME /config /downloads
 WORKDIR /config
+
+RUN \
+  mkdir -p /config/plugins && \
+  SITE=$(python -c 'import site; print(site.getsitepackages()[0])') && \
+  git clone https://github.com/madwind/flexget_qbittorrent_mod.git && \
+  cp -r flexget_qbittorrent_mod/* $SITE/flexget/plugins && \
+  git clone https://github.com/LeiShi1313/flexget-plugins.git && \
+  cp -r flexget-plugins/* $SITE/flexget/plugins && \
+  rm -r flexget_qbittorrent_mod flexget-plugins
 
 # expose port for flexget webui
 EXPOSE 3539 3539/tcp
